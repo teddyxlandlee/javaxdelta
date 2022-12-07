@@ -65,16 +65,7 @@ public class GDiffPatcher {
     public void patch(byte[] source, InputStream patch, OutputStream output) throws IOException {
         patch(new ByteBufferSeekableSource(source), patch, output);
     }
-    
-    /**
-     * Patches in memory, returning the patch result.
-     */
-    public byte[] patch(byte[] source, byte[] patch) throws IOException {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        patch(source, new ByteArrayInputStream(patch), os);
-        return os.toByteArray();
-    }
-    
+
     /**
      * Patches to an output stream.
      */

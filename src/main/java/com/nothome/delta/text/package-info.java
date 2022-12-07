@@ -4,8 +4,6 @@
  * <p>
  * The patch creation class is {@link com.nothome.delta.text.Delta}.
  * <p>
- * The patch applier class is {@link com.nothome.delta.text.TextPatcher}.
- * <p>
  * Example use:
  <pre>
  String source = ...;

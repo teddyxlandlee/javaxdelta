@@ -40,13 +40,13 @@ public class DebugDiffWriter implements DiffWriter {
      */
     public DebugDiffWriter() {}
     
-    public void addCopy(long offset, int length) throws IOException {
+    public void addCopy(long offset, int length) {
         if (os.size() > 0)
             writeBuf();
         System.err.println("COPY off: " + offset + ", len: " + length);
     }
     
-    public void addData(byte b) throws IOException {
+    public void addData(byte b) {
         os.write(b);
         writeBuf();
     }

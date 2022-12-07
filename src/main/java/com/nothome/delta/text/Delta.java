@@ -34,11 +34,12 @@
 
 package com.nothome.delta.text;
 
+ import xland.ioutils.xdelta.wrapper.JarPatcherMain;
+
  import java.io.*;
  import java.nio.CharBuffer;
  import java.nio.file.Files;
  import java.nio.file.Paths;
- import java.util.Objects;
 
  /**
  * Class for computing deltas against a source.
@@ -81,28 +82,8 @@ public class Delta {
             throw new IllegalArgumentException("Invalid size");
         S = size;
     }
-    
-    /**
-     * Compares the source bytes with target bytes, writing to output.
-     */
-    public void compute(CharSequence source, CharSequence target, Writer output)
-    throws IOException {
-        compute(new CharBufferSeekableSource(source), 
-                new StringReader(target.toString()),
-                new GDiffTextWriter(output));
-    }
-    
-    /**
-     * Compares the source bytes with target bytes, returning differences.
-     */
-    public String compute(CharSequence source, CharSequence target)
-    throws IOException {
-        StringWriter sw = new StringWriter();
-        compute(source, target, sw);
-        return sw.toString();
-    }
-    
-    /**
+
+     /**
      * Compares the source with a target, writing to output.
      * 
      * @param targetIS second file to compare with
@@ -299,18 +280,9 @@ public class Delta {
         
     }
 
-     private static void transferTo(Reader reader, Writer out) throws IOException {
-         Objects.requireNonNull(out, "out");
-         char[] buffer = new char[8192];
-         int nRead;
-         while ((nRead = reader.read(buffer, 0, 8192)) >= 0) {
-             out.write(buffer, 0, nRead);
-         }
-     }
-    
-    static CharSequence toString(Reader r) throws IOException {
+     static CharSequence toString(Reader r) throws IOException {
         StringWriter writer = new StringWriter();
-        transferTo(r, writer);
+        JarPatcherMain.transferTo(r, writer);
         return writer.toString();
     }
     

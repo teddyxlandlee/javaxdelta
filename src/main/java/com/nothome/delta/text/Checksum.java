@@ -34,7 +34,7 @@ import java.util.HashMap;
  */
 public class Checksum {
 
-    protected HashMap<Long, Integer> checksums = new HashMap<Long, Integer>();
+    protected HashMap<Long, Integer> checksums = new HashMap<>();
     
     private static final char[] single_hash = com.nothome.delta.Checksum.getSingleHash();
     
@@ -67,23 +67,20 @@ public class Checksum {
         bb.reset();
         return sum;
     }
-    
-    private static byte b(char c) {
-        return (byte)c;
-    }
-    
+
     private static long queryChecksum0(CharBuffer bb, int len) {
         int high = 0; int low = 0;
         for (int i = 0; i < len; i++) {
-            low += single_hash[b(bb.get())+128];
+            char c = bb.get();
+            low += single_hash[(byte) c +128];
             high += low;
         }
         return ((long) (high & 0xffff) << 16) | (low & 0xffff);
     }
     
     public static long incrementChecksum(long checksum, char out, char in, int chunkSize) {
-        char old_c = single_hash[b(out)+128];
-        char new_c = single_hash[b(in)+128];
+        char old_c = single_hash[(byte) out +128];
+        char new_c = single_hash[(byte) in +128];
         int low   = ((int)((checksum) & 0xffff) - old_c + new_c) & 0xffff;
         int high  = ((int)((checksum) >> 16) - (old_c * chunkSize) + low) & 0xffff;
         return ((long) high << 16) | (low & 0xffff);
@@ -102,8 +99,7 @@ public class Checksum {
     public String toString()
     {
         return super.toString() +
-            " checksums=" + (this.checksums) +
-            "";
+            " checksums=" + (this.checksums);
     }
     
     

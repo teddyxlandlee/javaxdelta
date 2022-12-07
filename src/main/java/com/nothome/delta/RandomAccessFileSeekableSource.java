@@ -30,6 +30,7 @@ package com.nothome.delta;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.util.Objects;
 
 /**
  * Wraps a random access file.
@@ -42,8 +43,7 @@ public class RandomAccessFileSeekableSource implements SeekableSource {
      * Constructs a new RandomAccessFileSeekableSource.
      */
     public RandomAccessFileSeekableSource(RandomAccessFile raf) {
-        if (raf == null)
-            throw new NullPointerException("raf");
+        Objects.requireNonNull(raf, "raf");
         this.raf = raf;
     }
 

@@ -27,6 +27,7 @@ package com.nothome.delta.text;
 import java.io.CharArrayWriter;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Objects;
 
 /**
  * A text-file format analog for GDIFF, which is only supported for binary
@@ -96,23 +97,18 @@ public class GDiffTextWriter implements DiffTextWriter {
      * Constructs a new GDiffTextWriter.
      */
     public GDiffTextWriter(Writer w) throws IOException {
-        if (w == null)
-            throw new NullPointerException("w");
+        Objects.requireNonNull(w, "w");
         this.w = w;
         w.write(GDT);
         w.write(LF);
     }
 
-    private String d(int i) {
-        return Integer.toHexString(i);
-    }
-
     public void addCopy(int offset, int length) throws IOException {
         writeBuf();
         w.write(COPY);
-        w.write(d(offset));
+        w.write(Integer.toHexString(offset));
         w.write(COMMA);
-        w.write(d(length));
+        w.write(Integer.toHexString(length));
         w.write(LF);
     }
 
@@ -126,7 +122,8 @@ public class GDiffTextWriter implements DiffTextWriter {
         if (caw.size() == 0)
             return;
         w.write(DATA);
-        w.write(d(caw.size()));
+        int i = caw.size();
+        w.write(Integer.toHexString(i));
         w.write(LF);
         caw.writeTo(w);
         caw.reset();

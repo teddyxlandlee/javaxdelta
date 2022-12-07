@@ -34,20 +34,13 @@
 
 package com.nothome.delta.text;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.Reader;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.io.Writer;
-import java.nio.CharBuffer;
+ import java.io.*;
+ import java.nio.CharBuffer;
+ import java.nio.file.Files;
+ import java.nio.file.Paths;
+ import java.util.Objects;
 
-/**
+ /**
  * Class for computing deltas against a source.
  * The source file is read by blocks and a hash is computed per block.
  * Then the target is scanned for matching blocks.
@@ -55,12 +48,7 @@ import java.nio.CharBuffer;
  * Essentially a duplicate of com.nothome.delta.Delta for character streams.
  */
 public class Delta {
-    
-    /**
-     * Debug flag.
-     */
-    final static boolean debug = false;
-    
+
     /**
      * Default size of 16.
      * For "Lorem ipsum" files, the ideal size is about 14. Any smaller and
@@ -124,29 +112,18 @@ public class Delta {
      */
     public void compute(SeekableSource seekSource, Reader targetIS, DiffTextWriter output)
     throws IOException {
-        
-        if (debug) {
-            debug("using match length S = " + S);
-        }
 
         SourceState source = new SourceState(seekSource);
         target = new TargetState(targetIS);
         this.output = output;
-        if (debug)
-            debug("checksums " + source.checksum);
-        
+
         while (!target.eof()) {
-            debug("!target.eof()");
             int index = target.find(source);
             if (index != -1) {
-                if (debug)
-                    debug("found hash " + index);
                 int offset = index * S;
                 source.seek(offset);
                 int match = target.longestMatch(source);
                 if (match >= S) {
-                    if (debug)
-                        debug("output.addCopy("+offset+","+match+")");
                     output.addCopy(offset, match);
                 } else {
                     // move the position back according to how much we can't copy
@@ -154,7 +131,7 @@ public class Delta {
                     addData();
                 }
             } else {
-                    addData();
+                addData();
             }
         }
         output.close();
@@ -162,8 +139,6 @@ public class Delta {
     
     private void addData() throws IOException {
         int i = target.read();
-        if (debug)
-            debug("addData " + (char)i);
         if (i == -1)
             return;
         output.addData((char)i);
@@ -225,21 +200,17 @@ public class Delta {
             sbuf.clear();
             sbuf.limit(0);
             if (hashReset) {
-                debug("hashReset");
                 while (tbuf.remaining() < S) {
                     tbuf.compact();
                     int read = c.read(tbuf);
                     tbuf.flip();
                     if (read == -1) {
-                        debug("target ending");
                         return -1;
                     }
                 }
                 hash = Checksum.queryChecksum(tbuf, S);
                 hashReset = false;
             }
-            if (debug)
-                debug("hash " + hash + " " + dump());
             return source.checksum.findChecksumIndex(hash);
         }
 
@@ -262,8 +233,6 @@ public class Delta {
             if (tbuf.remaining() >= S) {
                 char nchar = tbuf.get( tbuf.position() + S -1 );
                 hash = Checksum.incrementChecksum(hash, b, nchar, S);
-            } else {
-                debug("out of char");
             }
             return b;
         }
@@ -272,7 +241,6 @@ public class Delta {
          * Returns the longest match length at the source location.
          */
         public int longestMatch(SourceState source) throws IOException {
-            debug("longestMatch");
             int match = 0;
             hashReset = true;
             while (true) {
@@ -286,7 +254,6 @@ public class Delta {
                 if (!tbuf.hasRemaining()) {
                     readMore();
                     if (!tbuf.hasRemaining()) {
-                        debug("target ending");
                         eof = true;
                         return match;
                     }
@@ -300,8 +267,6 @@ public class Delta {
         }
 
         private void readMore() throws IOException {
-            if (debug)
-                debug("readMore " + tbuf);
             tbuf.compact();
             c.read(tbuf);
             tbuf.flip();
@@ -333,27 +298,20 @@ public class Delta {
         }
         
     }
-    
-    private void debug(String s) {
-        if (debug)
-            System.err.println(s);
-    }
 
-    static Reader forFile(File name) throws FileNotFoundException {
-        FileInputStream f1 = new FileInputStream(name);
-        InputStreamReader isr = new InputStreamReader(f1);
-        return new BufferedReader(isr);
-    }
+     private static void transferTo(Reader reader, Writer out) throws IOException {
+         Objects.requireNonNull(out, "out");
+         char[] buffer = new char[8192];
+         int nRead;
+         while ((nRead = reader.read(buffer, 0, 8192)) >= 0) {
+             out.write(buffer, 0, nRead);
+         }
+     }
     
     static CharSequence toString(Reader r) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        while (true) {
-            int read = r.read();
-            if (read == -1)
-                break;
-            sb.append((char)read);
-        }
-        return sb;
+        StringWriter writer = new StringWriter();
+        transferTo(r, writer);
+        return writer.toString();
     }
     
     /**
@@ -364,9 +322,8 @@ public class Delta {
             System.err.println("Usage: java ...Delta file1 file2 [> somefile]");
             return;
         }
-        Reader r1 = forFile(new File(s[0]));
-        File f2 = new File(s[1]);
-        Reader r2 = forFile(f2);
+        Reader r1 = Files.newBufferedReader(Paths.get(s[0]));
+        Reader r2 = Files.newBufferedReader(Paths.get(s[1]));
         CharSequence sb = toString(r1);
         Delta d = new Delta();
         OutputStreamWriter osw = new OutputStreamWriter(System.out);

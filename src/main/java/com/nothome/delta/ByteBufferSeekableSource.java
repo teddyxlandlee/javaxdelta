@@ -28,6 +28,7 @@ package com.nothome.delta;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Objects;
 
 /**
  * Wraps a byte buffer as a source
@@ -48,8 +49,7 @@ public class ByteBufferSeekableSource implements SeekableSource {
      * Constructs a new ByteArraySeekableSource.
      */
     public ByteBufferSeekableSource(ByteBuffer bb) {
-        if (bb == null)
-            throw new NullPointerException("bb");
+        Objects.requireNonNull(bb, "bb");
         this.bb = bb;
         bb.rewind();
         try {

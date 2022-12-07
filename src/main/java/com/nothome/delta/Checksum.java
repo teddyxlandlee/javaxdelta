@@ -34,7 +34,7 @@ import java.util.HashMap;
  */
 public class Checksum {
 
-    private final HashMap<Long, Integer> checksums = new HashMap<Long, Integer>();
+    private final HashMap<Long, Integer> checksums = new HashMap<>();
     
     private static final char[] single_hash = {
         /* Random numbers generated using SLIB's pseudo-random number generator. */

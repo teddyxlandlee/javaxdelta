@@ -25,31 +25,11 @@
 
 package com.nothome.delta;
 
-import static com.nothome.delta.GDiffWriter.COPY_INT_INT;
-import static com.nothome.delta.GDiffWriter.COPY_INT_UBYTE;
-import static com.nothome.delta.GDiffWriter.COPY_INT_USHORT;
-import static com.nothome.delta.GDiffWriter.COPY_LONG_INT;
-import static com.nothome.delta.GDiffWriter.COPY_USHORT_INT;
-import static com.nothome.delta.GDiffWriter.COPY_USHORT_UBYTE;
-import static com.nothome.delta.GDiffWriter.COPY_USHORT_USHORT;
-import static com.nothome.delta.GDiffWriter.DATA_INT;
-import static com.nothome.delta.GDiffWriter.DATA_MAX;
-import static com.nothome.delta.GDiffWriter.DATA_USHORT;
-import static com.nothome.delta.GDiffWriter.EOF;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.EOFException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.RandomAccessFile;
+import java.io.*;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+
+import static com.nothome.delta.GDiffWriter.*;
 
 /**
  * This class patches an input file with a GDIFF patch file.
@@ -74,15 +54,8 @@ public class GDiffPatcher {
     public void patch(File sourceFile, File patchFile, File outputFile)
 		throws IOException
 	{
-        RandomAccessFileSeekableSource source =new RandomAccessFileSeekableSource(new RandomAccessFile(sourceFile, "r")); 
-        InputStream patch = new FileInputStream(patchFile);
-        OutputStream output = new FileOutputStream(outputFile);
-        try {
+        try (RandomAccessFileSeekableSource source = new RandomAccessFileSeekableSource(new RandomAccessFile(sourceFile, "r")); InputStream patch = Files.newInputStream(patchFile.toPath()); OutputStream output = Files.newOutputStream(outputFile.toPath())) {
             patch(source, patch, output);
-        } finally {
-            source.close();
-            patch.close();
-            output.close();
         }
     }
     

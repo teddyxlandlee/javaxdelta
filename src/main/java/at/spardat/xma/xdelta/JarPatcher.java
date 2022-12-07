@@ -22,18 +22,15 @@
  */
 package at.spardat.xma.xdelta;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import com.nothome.delta.GDiffPatcher;
+import com.nothome.delta.PatchException;
+
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
-
-import com.nothome.delta.GDiffPatcher;
-import com.nothome.delta.PatchException;
 
 /**
  * This class applys a zip file containing deltas created with {@link JarDelta} using
@@ -74,7 +71,8 @@ public class JarPatcher {
                     } else {
                         byte[] patchBytes = new byte[(int)patchEntry.getSize()];
                         InputStream patchStream = patch.getInputStream(patchEntry);
-                        for(int erg=patchStream.read(patchBytes);erg<patchBytes.length;erg+=patchStream.read(patchBytes,erg,patchBytes.length-erg));
+                        for (int erg = patchStream.read(patchBytes); erg<patchBytes.length; )
+                            erg+=patchStream.read(patchBytes,erg,patchBytes.length-erg);
                         patchStream.close();
                         ZipEntry outputEntry = new ZipEntry(patchEntry);
                         output.putNextEntry(outputEntry);
@@ -92,7 +90,8 @@ public class JarPatcher {
                     }
                     byte[] sourceBytes = new byte[(int)sourceEntry.getSize()];
                     InputStream sourceStream = source.getInputStream(sourceEntry);
-                    for(int erg=sourceStream.read(sourceBytes);erg<sourceBytes.length;erg+=sourceStream.read(sourceBytes,erg,sourceBytes.length-erg));
+                    for (int erg = sourceStream.read(sourceBytes); erg < sourceBytes.length;)
+                        erg+=sourceStream.read(sourceBytes,erg,sourceBytes.length-erg);
                     sourceStream.close();
 
                     patchEntry = patch.getEntry(fileName+".gdiff");
@@ -116,9 +115,7 @@ public class JarPatcher {
             }
             list.close();
         } catch (PatchException pe) {
-            IOException ioe = new IOException();
-            ioe.initCause(pe);
-            throw ioe;
+            throw new IOException(pe);
         } finally {
             source.close();
             patch.close();
@@ -136,6 +133,6 @@ public class JarPatcher {
             System.err.println("usage JarPatcher source patch output");
             return;
         }
-        new JarPatcher().applyDelta(new ZipFile(args[0]),new ZipFile(args[1]),new ZipOutputStream(new FileOutputStream(args[2])));
+        new JarPatcher().applyDelta(new ZipFile(args[0]),new ZipFile(args[1]),new ZipOutputStream(Files.newOutputStream(Paths.get(args[2]))));
     }
 }

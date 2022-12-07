@@ -15,15 +15,15 @@ repositories {
 }
 
 dependencies {
-    //implementation("trove:trove:2.1.1")
+    testImplementation("junit:junit:4.13.2")
 }
 
 group = "xland.ioutils.com.nothome"
 version = "2.0.1"
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_5
-    targetCompatibility = JavaVersion.VERSION_1_5
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
     withSourcesJar()
     withJavadocJar()
 }

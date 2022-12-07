@@ -41,8 +41,7 @@ public class CharBufferSeekableSource implements SeekableSource {
      * Constructs a new CharBufferSeekableSource.
      */
     public CharBufferSeekableSource(CharBuffer cb) {
-        if (cb == null)
-            throw new NullPointerException("cb");
+        Objects.requireNonNull(cb, "cb");
         this.cb = cb;
         try {
             seek(0);
@@ -67,6 +66,7 @@ public class CharBufferSeekableSource implements SeekableSource {
     }
 
     public int read(/* @Nonnull */ CharBuffer charbuffer) throws IOException {
+        Objects.requireNonNull(charbuffer);
         return cur.read(charbuffer);
     }
 

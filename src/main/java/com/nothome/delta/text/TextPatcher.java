@@ -32,6 +32,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.CharBuffer;
+import java.util.Objects;
 
 /**
  * Converts a text patch and source file to a resulting target file.
@@ -52,8 +53,7 @@ public class TextPatcher {
      * Patch from a string, return the result.
      */
     public String patch(CharSequence patch) {
-        if (patch == null)
-            throw new NullPointerException("patch");
+        Objects.requireNonNull(patch, "patch");
         StringWriter sw = new StringWriter();
         try {
             patch(new StringReader(patch.toString()), sw);
@@ -62,20 +62,14 @@ public class TextPatcher {
             throw new IllegalArgumentException("Invalid patch: " + e, e);
         }
     }
-    
-    private long l(String s) {
-        return Long.parseLong(s, 16);
-    }
-    
+
     /**
      * Patches a source to an output file.
      * @param out The output must be closed by the caller
      */
     public void patch(Reader patch, Writer out) throws IOException {
-        if (patch == null)
-            throw new NullPointerException("patch");
-        if (out == null)
-            throw new NullPointerException("out");
+        Objects.requireNonNull(patch, "patch");
+        Objects.requireNonNull(out, "out");
         BufferedReader br;
         if (patch instanceof BufferedReader)
             br = (BufferedReader) patch;
@@ -98,12 +92,12 @@ public class TextPatcher {
                 int i = line.indexOf(GDiffTextWriter.COMMA);
                 if (i == -1)
                     throw new IOException(", not found");
-                long offset = l(line.substring(1, i));
-                long length = l(line.substring(i + 1));
+                long offset = Long.parseLong(line.substring(1, i), 16);
+                long length = Long.parseLong(line.substring(i + 1), 16);
                 source.seek(offset);
                 copy(source, out, (int)length);
             } else if (c == GDiffTextWriter.DATA) {
-                long dataSize = l(line.substring(1));
+                long dataSize = Long.parseLong(line.substring(1), 16);
                 copy(br, out, (int)dataSize);
                 br.readLine();
             } else {

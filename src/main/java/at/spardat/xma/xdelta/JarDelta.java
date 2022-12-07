@@ -22,21 +22,18 @@
  */
 package at.spardat.xma.xdelta;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import com.nothome.delta.Delta;
+import com.nothome.delta.DiffWriter;
+import com.nothome.delta.GDiffWriter;
+
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
-
-import com.nothome.delta.Delta;
-import com.nothome.delta.DiffWriter;
-import com.nothome.delta.GDiffWriter;
 
 
 /**
@@ -53,7 +50,7 @@ public class JarDelta {
     /**
      * Computes the binary differences of two zip files. For all files contained in source and target which
      * are not equal, the binary difference is caluclated by using
-     * {@link com.nothome.delta.Delta#computeDelta(com.nothome.delta.SeekableSource, InputStream, int, DiffWriter)}.
+     * {@link com.nothome.delta.Delta#compute(byte[], byte[])} (com.nothome.delta.SeekableSource, InputStream, int, DiffWriter)}.
      * If the files are equal, nothing is written to the output for them.
      * Files contained only in target and files to small for {@link com.nothome.delta.Delta} are copied to output.
      * Files contained only in source are ignored.
@@ -68,8 +65,8 @@ public class JarDelta {
         try {
             ByteArrayOutputStream listBytes = new ByteArrayOutputStream();
             PrintWriter list = new PrintWriter(new OutputStreamWriter(listBytes));
-    		for(Enumeration enumer=target.entries();enumer.hasMoreElements();) {
-    			ZipEntry targetEntry = (ZipEntry)enumer.nextElement();
+    		for(Enumeration<? extends ZipEntry> enumer = target.entries(); enumer.hasMoreElements();) {
+    			ZipEntry targetEntry = enumer.nextElement();
                 ZipEntry sourceEntry = source.getEntry(targetEntry.getName());
                 list.println(targetEntry.getName());
 
@@ -84,7 +81,8 @@ public class JarDelta {
     			int targetSize = (int)targetEntry.getSize();
     			byte[] targetBytes = new byte[targetSize];
     			InputStream targetStream = target.getInputStream(targetEntry);
-    			for(int erg=targetStream.read(targetBytes);erg<targetBytes.length;erg+=targetStream.read(targetBytes,erg,targetBytes.length-erg));
+    			for (int erg=targetStream.read(targetBytes); erg<targetBytes.length; )
+                    erg+=targetStream.read(targetBytes,erg,targetBytes.length-erg);
                 targetStream.close();
                 int chunk = Delta.DEFAULT_CHUNK_SIZE;
     			if(sourceEntry==null
@@ -97,9 +95,10 @@ public class JarDelta {
     				int sourceSize = (int)sourceEntry.getSize();
     				byte[] sourceBytes = new byte[sourceSize];
     				InputStream sourceStream = source.getInputStream(sourceEntry);
-    				for(int erg=sourceStream.read(sourceBytes);erg<sourceBytes.length;erg+=sourceStream.read(sourceBytes,erg,sourceBytes.length-erg));
+    				for (int erg = sourceStream.read(sourceBytes); erg<sourceBytes.length; )
+                        erg+=sourceStream.read(sourceBytes,erg,sourceBytes.length-erg);
     				sourceStream.close();
-                    if(!equal(sourceBytes,targetBytes)) {
+                    if (!Arrays.equals(sourceBytes, targetBytes)) {
         				ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
                         DiffWriter diffWriter = new GDiffWriter(new DataOutputStream(outputStream));
         				Delta d = new Delta();
@@ -125,18 +124,6 @@ public class JarDelta {
 	}
 
     /**
-     * Test if the content of two byte arrays is completly identical.
-     * @return true if source and target contain the same bytes.
-     */
-	public boolean equal(byte[] source,byte[]target) {
-	    if(source.length!=target.length) return false;
-        for(int i=0;i<source.length;i++) {
-            if(source[i]!=target[i]) return false;
-        }
-        return true;
-    }
-
-    /**
      * Main method to make {@link #computeDelta(ZipFile, ZipFile, ZipOutputStream)} available at
      * the command line.<br>
      * usage JarDelta source target output
@@ -146,6 +133,6 @@ public class JarDelta {
 			System.err.println("usage JarDelta source target output");
 			return;
 		}
-		new JarDelta().computeDelta(new ZipFile(args[0]),new ZipFile(args[1]),new ZipOutputStream(new FileOutputStream(args[2])));
+		new JarDelta().computeDelta(new ZipFile(args[0]),new ZipFile(args[1]),new ZipOutputStream(Files.newOutputStream(Paths.get(args[2]))));
 	}
 }

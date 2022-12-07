@@ -34,23 +34,14 @@
 
 package com.nothome.delta;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
+ import java.io.*;
+ import java.nio.ByteBuffer;
+ import java.nio.channels.Channels;
+ import java.nio.channels.ReadableByteChannel;
+ import java.nio.file.Files;
+ import java.nio.file.Paths;
 
-/**
+ /**
  * Class for computing deltas against a source.
  * The source file is read by blocks and a hash is computed per block.
  * Then the target is scanned for matching blocks.
@@ -141,13 +132,8 @@ public class Delta {
      */
     public void compute(File sourceFile, File targetFile, DiffWriter output)
     throws IOException {
-        RandomAccessFileSeekableSource source = new RandomAccessFileSeekableSource(new RandomAccessFile(sourceFile, "r"));
-        InputStream is = new BufferedInputStream(new FileInputStream(targetFile));
-        try {
+        try (RandomAccessFileSeekableSource source = new RandomAccessFileSeekableSource(new RandomAccessFile(sourceFile, "r")); InputStream is = new BufferedInputStream(Files.newInputStream(targetFile.toPath()))) {
             compute(source, is, output);
-        } finally {
-            source.close();
-            is.close();
         }
     }
     
@@ -409,7 +395,7 @@ public class Delta {
                 new GDiffWriter(
                         new DataOutputStream(
                                 new BufferedOutputStream(
-                                        new FileOutputStream(argv[2]))));
+                                        Files.newOutputStream(Paths.get(argv[2])))));
         }
 
         if (sourceFile.length() > Integer.MAX_VALUE

@@ -52,15 +52,15 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 
 /**
- * This class patches an input file with a GDIFF patch fil�e.
- *
+ * This class patches an input file with a GDIFF patch file.
+ * <p>
  * The patch file follows the GDIFF file specification available at
- * {@link http://www.w3.org/TR/NOTE-gdiff-19970901.html}.
+ * <a href="http://www.w3.org/TR/NOTE-gdiff-19970901.html">http://www.w3.org/TR/NOTE-gdiff-19970901.html</a>.
  */
 public class GDiffPatcher {
     
-    private ByteBuffer buf = ByteBuffer.allocate(1024);
-    private byte buf2[] = buf.array();
+    private final ByteBuffer buf = ByteBuffer.allocate(1024);
+    private final byte[] buf2 = buf.array();
 
     /**
      * Constructs a new GDiffPatcher.
@@ -79,8 +79,6 @@ public class GDiffPatcher {
         OutputStream output = new FileOutputStream(outputFile);
         try {
             patch(source, patch, output);
-        } catch (IOException e) {
-            throw e;
         } finally {
             source.close();
             patch.close();
@@ -214,7 +212,7 @@ public class GDiffPatcher {
     /**
      * Simple command line tool to patch a file.
      */
-    public static void main(String argv[]) {
+    public static void main(String[] argv) {
 
         if (argv.length != 3) {
             System.err.println("usage GDiffPatch source patch output");

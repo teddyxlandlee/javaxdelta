@@ -31,7 +31,7 @@ import java.io.OutputStream;
 
 /**
  * Outputs a diff following the GDIFF file specification available at
- * http://www.w3.org/TR/NOTE-gdiff-19970901.html.
+ * <a href="http://www.w3.org/TR/NOTE-gdiff-19970901.html">http://www.w3.org/TR/NOTE-gdiff-19970901.html</a>.
  */
 public class GDiffWriter implements DiffWriter {
     
@@ -57,11 +57,9 @@ public class GDiffWriter implements DiffWriter {
     public static final int COPY_INT_INT = 254;
     public static final int COPY_LONG_INT = 255;
 
-    private ByteArrayOutputStream buf = new ByteArrayOutputStream();
+    private final ByteArrayOutputStream buf = new ByteArrayOutputStream();
 
-    private boolean debug = false;
-    
-    private DataOutputStream output = null;
+    private final DataOutputStream output;
     
     /**
      * Constructs a new GDiffWriter.
@@ -85,11 +83,7 @@ public class GDiffWriter implements DiffWriter {
 
     public void addCopy(long offset, int length) throws IOException {
         writeBuf();
-        
-        //output debug data        
-        if (debug)
-            System.err.println("COPY off: " + offset + ", len: " + length);
-        
+
         // output real data
         if (offset > Integer.MAX_VALUE) {
             // Actually, we don't support longer files than int.MAX_VALUE at the moment..
@@ -166,7 +160,7 @@ public class GDiffWriter implements DiffWriter {
      */
     public void close() throws IOException {
         this.flush();
-        output.write((byte)EOF);
+        output.write(EOF);
         output.close();
     }
 

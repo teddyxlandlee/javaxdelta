@@ -36,12 +36,6 @@ public class PatchException extends IOException {
     private static final long serialVersionUID = 1;
 
     /**
-     * Creates a new instance of <code>PatchException</code> without detail message.
-     */
-    public PatchException() {
-    }
-    
-    /**
      * Constructs an instance of <code>PatchException</code> with the specified detail message.
      * @param msg the detail message.
      */

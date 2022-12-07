@@ -31,9 +31,9 @@ import java.io.Writer;
 /**
  * A text-file format analog for GDIFF, which is only supported for binary
  * streams.
- * 
+ * <p>
  * The output follows the following extended BNF format:
- * 
+ *
  <pre>
  gdiff-text ::= header , { copy | data }
  header ::= 'gdt' , { version } , '\n'
@@ -55,7 +55,7 @@ import java.io.Writer;
  * additional commands and hints.
  * <p>
  * See also:
- * http://www.w3.org/TR/NOTE-gdiff-19970901.html.
+ * <a href="http://www.w3.org/TR/NOTE-gdiff-19970901.html">http://www.w3.org/TR/NOTE-gdiff-19970901.html</a>.
  */
 public class GDiffTextWriter implements DiffTextWriter {
 
@@ -81,9 +81,9 @@ public class GDiffTextWriter implements DiffTextWriter {
 
     static final String GDT = "gdt";
     
-    private CharArrayWriter caw = new CharArrayWriter();
+    private final CharArrayWriter caw = new CharArrayWriter();
 
-    private Writer w = null;
+    private final Writer w;
     
     /**
      * Max length of a "text-chunk".
@@ -94,8 +94,6 @@ public class GDiffTextWriter implements DiffTextWriter {
 
     /**
      * Constructs a new GDiffTextWriter.
-     * @param w
-     * @throws IOException
      */
     public GDiffTextWriter(Writer w) throws IOException {
         if (w == null)

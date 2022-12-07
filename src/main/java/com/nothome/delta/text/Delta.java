@@ -74,8 +74,7 @@ public class Delta {
      * Chunk Size.
      */
     private int S;
-    
-    private SourceState source;
+
     private TargetState target;
     private DiffTextWriter output;
     
@@ -87,8 +86,7 @@ public class Delta {
      * Sets the chunk size used.
      * Larger chunks are faster and use less memory, but create larger patches
      * as well.
-     * 
-     * @param size
+     *
      */
     public void setChunkSize(int size) {
         if (size <= 0)
@@ -130,8 +128,8 @@ public class Delta {
         if (debug) {
             debug("using match length S = " + S);
         }
-        
-        source = new SourceState(seekSource);
+
+        SourceState source = new SourceState(seekSource);
         target = new TargetState(targetIS);
         this.output = output;
         if (debug)
@@ -173,8 +171,8 @@ public class Delta {
     
     class SourceState {
 
-        private Checksum checksum;
-        private SeekableSource source;
+        private final Checksum checksum;
+        private final SeekableSource source;
         
         public SourceState(SeekableSource source) throws IOException {
             checksum = new Checksum(source, S);
@@ -202,14 +200,14 @@ public class Delta {
         
     class TargetState {
         
-        private Readable c;
-        private CharBuffer tbuf = CharBuffer.allocate(blocksize());
-        private CharBuffer sbuf = CharBuffer.allocate(blocksize());
+        private final Readable c;
+        private final CharBuffer tbuf = CharBuffer.allocate(blocksize());
+        private final CharBuffer sbuf = CharBuffer.allocate(blocksize());
         private long hash;
         private boolean hashReset = true;
         private boolean eof;
         
-        TargetState(Reader targetIS) throws IOException {
+        TargetState(Reader targetIS) {
             c = targetIS;
             tbuf.limit(0);
         }
@@ -251,7 +249,6 @@ public class Delta {
 
         /**
          * Reads a char.
-         * @throws IOException
          */
         public int read() throws IOException {
             if (tbuf.remaining() <= S) {
@@ -310,10 +307,6 @@ public class Delta {
             tbuf.flip();
         }
 
-        void hash() {
-            hash = Checksum.queryChecksum(tbuf, S);
-        }
-
         /**
          * Returns a debug <code>String</code>.
          */
@@ -334,7 +327,7 @@ public class Delta {
             bb.mark();
             StringBuilder sb = new StringBuilder();
             while (bb.hasRemaining())
-                sb.append((char)bb.get());
+                sb.append(bb.get());
             bb.reset();
             return sb.toString();
         }
@@ -366,7 +359,7 @@ public class Delta {
     /**
      * Creates a patch with file names.
      */
-    public static void main(String s[]) throws IOException {
+    public static void main(String[] s) throws IOException {
         if (s.length != 2) {
             System.err.println("Usage: java ...Delta file1 file2 [> somefile]");
             return;

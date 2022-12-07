@@ -38,17 +38,8 @@ import java.nio.CharBuffer;
  */
 public class TextPatcher {
 
-    private SeekableSource source;
-    private CharBuffer buf = CharBuffer.allocate(1024);
-    
-    /**
-     * Constructs a new TextPatcher with a generic source.
-     */
-    public TextPatcher(SeekableSource source) throws IOException {
-        if (source == null)
-            throw new NullPointerException("source");
-        this.source = source;
-    }
+    private final SeekableSource source;
+    private final CharBuffer buf = CharBuffer.allocate(1024);
     
     /**
      * Constructs a new TextPatcher with a source to patch.

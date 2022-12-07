@@ -25,20 +25,16 @@
 
 package com.nothome.delta.text;
 
-import gnu.trove.TLongIntHashMap;
-import gnu.trove.decorator.TLongIntHashMapDecorator;
-
 import java.io.IOException;
 import java.nio.CharBuffer;
+import java.util.HashMap;
 
 /**
  * Checksum that uses character streams.
  */
 public class Checksum {
-    
-    public static boolean debug = false;
-    
-    protected TLongIntHashMap checksums = new TLongIntHashMap();
+
+    protected HashMap<Long, Integer> checksums = new HashMap<Long, Integer>();
     
     private static final char[] single_hash = com.nothome.delta.Checksum.getSingleHash();
     
@@ -82,7 +78,7 @@ public class Checksum {
             low += single_hash[b(bb.get())+128];
             high += low;
         }
-        return ((high & 0xffff) << 16) | (low & 0xffff);
+        return ((long) (high & 0xffff) << 16) | (low & 0xffff);
     }
     
     public static long incrementChecksum(long checksum, char out, char in, int chunkSize) {
@@ -90,11 +86,11 @@ public class Checksum {
         char new_c = single_hash[b(in)+128];
         int low   = ((int)((checksum) & 0xffff) - old_c + new_c) & 0xffff;
         int high  = ((int)((checksum) >> 16) - (old_c * chunkSize) + low) & 0xffff;
-        return (high << 16) | (low & 0xffff);
+        return ((long) high << 16) | (low & 0xffff);
     }
     
     public int findChecksumIndex(long hashf) {
-        if (!checksums.contains(hashf))
+        if (!checksums.containsKey(hashf))
             return -1;
         return checksums.get(hashf);
     }
@@ -106,7 +102,7 @@ public class Checksum {
     public String toString()
     {
         return super.toString() +
-            " checksums=" + new TLongIntHashMapDecorator(this.checksums) +
+            " checksums=" + (this.checksums) +
             "";
     }
     

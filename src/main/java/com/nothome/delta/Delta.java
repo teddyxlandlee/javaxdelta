@@ -81,8 +81,7 @@ public class Delta {
      * Chunk Size.
      */
     private int S;
-    
-    private SourceState source;
+
     private TargetState target;
     private DiffWriter output;
     
@@ -98,8 +97,6 @@ public class Delta {
      * Sets the chunk size used.
      * Larger chunks are faster and use less memory, but create larger patches
      * as well.
-     * 
-     * @param size
      */
     public void setChunkSize(int size) {
         if (size <= 0)
@@ -110,7 +107,7 @@ public class Delta {
     /**
      * Compares the source bytes with target bytes, writing to output.
      */
-    public void compute(byte source[], byte target[], OutputStream output)
+    public void compute(byte[] source, byte[] target, OutputStream output)
     throws IOException {
         compute(new ByteBufferSeekableSource(source), 
                 new ByteArrayInputStream(target),
@@ -120,7 +117,7 @@ public class Delta {
     /**
      * Compares the source bytes with target bytes, returning output.
      */
-    public byte[] compute(byte source[], byte target[])
+    public byte[] compute(byte[] source, byte[] target)
     throws IOException {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         compute(source, target, os);
@@ -165,8 +162,8 @@ public class Delta {
         if (debug) {
             debug("using match length S = " + S);
         }
-        
-        source = new SourceState(seekSource);
+
+        SourceState source = new SourceState(seekSource);
         target = new TargetState(targetIS);
         this.output = output;
         if (debug)
@@ -208,8 +205,8 @@ public class Delta {
     
     class SourceState {
 
-        private Checksum checksum;
-        private SeekableSource source;
+        private final Checksum checksum;
+        private final SeekableSource source;
         
         public SourceState(SeekableSource source) throws IOException {
             checksum = new Checksum(source, S);
@@ -237,14 +234,14 @@ public class Delta {
         
     class TargetState {
         
-        private ReadableByteChannel c;
-        private ByteBuffer tbuf = ByteBuffer.allocate(blocksize());
-        private ByteBuffer sbuf = ByteBuffer.allocate(blocksize());
+        private final ReadableByteChannel c;
+        private final ByteBuffer tbuf = ByteBuffer.allocate(blocksize());
+        private final ByteBuffer sbuf = ByteBuffer.allocate(blocksize());
         private long hash;
         private boolean hashReset = true;
         private boolean eof;
         
-        TargetState(InputStream targetIS) throws IOException {
+        TargetState(InputStream targetIS) {
             c = Channels.newChannel(targetIS);
             tbuf.limit(0);
         }
@@ -286,7 +283,6 @@ public class Delta {
 
         /**
          * Reads a byte.
-         * @throws IOException
          */
         public int read() throws IOException {
             if (tbuf.remaining() <= S) {
@@ -345,10 +341,6 @@ public class Delta {
             tbuf.flip();
         }
 
-        void hash() {
-            hash = Checksum.queryChecksum(tbuf, S);
-        }
-
         /**
          * Returns a debug <code>String</code>.
          */
@@ -396,16 +388,16 @@ public class Delta {
     /**
      * Creates a patch using file names.
      */
-    public static void main(String argv[]) throws Exception {
+    public static void main(String[] argv) throws Exception {
         if (argv.length != 3) {
             System.err.println("usage Delta [-d] source target [output]");
             System.err.println("either -d or an output filename must be specified.");
             System.err.println("aborting..");
             return;
         }
-        DiffWriter output = null;
-        File sourceFile = null;
-        File targetFile = null;
+        DiffWriter output;
+        File sourceFile;
+        File targetFile;
         if (argv[0].equals("-d")) {
             sourceFile = new File(argv[1]);
             targetFile = new File(argv[2]);
@@ -417,7 +409,7 @@ public class Delta {
                 new GDiffWriter(
                         new DataOutputStream(
                                 new BufferedOutputStream(
-                                        new FileOutputStream(new File(argv[2])))));
+                                        new FileOutputStream(argv[2]))));
         }
 
         if (sourceFile.length() > Integer.MAX_VALUE

@@ -36,11 +36,10 @@ import java.nio.ByteBuffer;
  */
 public class RandomAccessFileSeekableSource implements SeekableSource {
     
-    private RandomAccessFile raf;
+    private final RandomAccessFile raf;
 
     /**
      * Constructs a new RandomAccessFileSeekableSource.
-     * @param raf
      */
     public RandomAccessFileSeekableSource(RandomAccessFile raf) {
         if (raf == null)

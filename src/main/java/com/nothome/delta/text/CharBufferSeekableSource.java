@@ -27,13 +27,14 @@ package com.nothome.delta.text;
 
 import java.io.IOException;
 import java.nio.CharBuffer;
+import java.util.Objects;
 
 /**
  * Wrapper for a {@link CharBuffer}.
  */
 public class CharBufferSeekableSource implements SeekableSource {
     
-    private CharBuffer cb;
+    private final CharBuffer cb;
     private CharBuffer cur;
 
     /**
@@ -65,7 +66,7 @@ public class CharBufferSeekableSource implements SeekableSource {
         cur.position((int) pos);
     }
 
-    public int read(CharBuffer charbuffer) throws IOException {
+    public int read(/* @Nonnull */ CharBuffer charbuffer) throws IOException {
         return cur.read(charbuffer);
     }
 

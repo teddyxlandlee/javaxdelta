@@ -25,22 +25,18 @@
 
 package com.nothome.delta;
 
-import gnu.trove.TLongIntHashMap;
-import gnu.trove.decorator.TLongIntHashMapDecorator;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 
 /**
  * Checksum computation class.
  */
 public class Checksum {
+
+    private final HashMap<Long, Integer> checksums = new HashMap<Long, Integer>();
     
-    static final boolean debug = false;
-    
-    private TLongIntHashMap checksums = new TLongIntHashMap();
-    
-    private static final char single_hash[] = {
+    private static final char[] single_hash = {
         /* Random numbers generated using SLIB's pseudo-random number generator. */
         0xbcd1, 0xbb65, 0x42c2, 0xdffe, 0x9666, 0x431b, 0x8504, 0xeb46,
         0x6379, 0xd460, 0xcf14, 0x53cf, 0xdb51, 0xdb08, 0x12c8, 0xf602,
@@ -113,7 +109,7 @@ public class Checksum {
             low += single_hash[bb.get()+128];
             high += low;
         }
-        return ((high & 0xffff) << 16) | (low & 0xffff);
+        return ((long) (high & 0xffff) << 16) | (low & 0xffff);
     }
     
     /**
@@ -129,7 +125,7 @@ public class Checksum {
         char new_c = single_hash[in+128];
         int low   = ((int)((checksum) & 0xffff) - old_c + new_c) & 0xffff;
         int high  = ((int)((checksum) >> 16) - (old_c * chunkSize) + low) & 0xffff;
-        return (high << 16) | (low & 0xffff);
+        return ((long) high << 16) | (low & 0xffff);
     }
     
     /**
@@ -143,7 +139,7 @@ public class Checksum {
      * Finds the index of a checksum.
      */
     public int findChecksumIndex(long hashf) {
-        if (!checksums.contains(hashf))
+        if (!checksums.containsKey(hashf))
             return -1;
         return checksums.get(hashf);
     }
@@ -155,7 +151,7 @@ public class Checksum {
     public String toString()
     {
         return super.toString() +
-            " checksums=" + new TLongIntHashMapDecorator(this.checksums) +
+            " checksums=" + (this.checksums) +
             "";
     }
     

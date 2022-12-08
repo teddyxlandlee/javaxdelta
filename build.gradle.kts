@@ -62,6 +62,7 @@ tasks.register("proguardJar", proguard.gradle.ProGuardTask::class) {
     repackageclasses("xdelta")
     keepclasseswithmembers("public class ${Constants.MAIN_CLASS} {\npublic static void main(java.lang.String[]);\n}")
     configuration("rootconf.pro")
+    printmapping(buildDir.resolve("proguard-${version}.mapping"))
 }
 
 val prepareDeployThings = tasks.register("prepareDeployThings") {

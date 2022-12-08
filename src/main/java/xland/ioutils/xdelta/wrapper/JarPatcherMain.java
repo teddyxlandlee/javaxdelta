@@ -6,6 +6,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -15,10 +16,9 @@ import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 public class JarPatcherMain {
-
     private static String inputFile() throws IOException {
-        try (InputStream s = JarPatcherMain.class.getResourceAsStream("META-INF/input-file")) {
-            if (s == null) throw new FileNotFoundException("input-file");
+        try (InputStream s = JarPatcherMain.class.getResourceAsStream("/META-INF/input-file")) {
+            if (s == null) throw new FileNotFoundException("/META-INF/input-file");
             BufferedReader br = new BufferedReader(new InputStreamReader(s));
             StringWriter sw = new StringWriter();
             transferTo(br, sw);
@@ -31,6 +31,7 @@ public class JarPatcherMain {
     public static void main(String[] rawArgs) {
         Map<Character, String> aliasMap = new HashMap<>(); {
             aliasMap.put('v', "verbose");
+            aliasMap.put('h', "help");
             aliasMap.put('d', "delta");
         }
 
@@ -49,6 +50,9 @@ public class JarPatcherMain {
                     case "delta":
                         delta = iterator.next().toString();
                         break;
+                    case "help":
+                        log(true, JarPatcherMain::help);
+                        System.exit(0);
                 }
             } else {
                 if (input != null) {
@@ -63,13 +67,20 @@ public class JarPatcherMain {
             log(verbose, () -> "Created temp file " + file);
             Path output = Paths.get(input == null ? inputFile() : input);
             log(verbose, () -> "Moving " + output + " to " + file);
-            Files.move(output, file.toPath());
+            Files.move(output, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
             File patch;
             if (delta == null) {
                 patch = tempFile();
                 log(verbose, () -> "Extracting patch to " + patch);
-                Files.copy(Objects.requireNonNull(JarPatcherMain.class.getResourceAsStream("META-INF/patch.bin")), patch.toPath());
+                final InputStream patchBin = JarPatcherMain.class.getResourceAsStream("/META-INF/patch.bin");
+                if (patchBin == null) {
+                    throw new FileNotFoundException("/META-INF/patch.bin");
+                } else {
+                    try (InputStream p = patchBin) {
+                        Files.copy(p, patch.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    }
+                }
             } else {
                 patch = new File(delta);
             }
@@ -79,6 +90,10 @@ public class JarPatcherMain {
         } catch (IOException e) {
             logAndExit(e);
         }
+    }
+
+    public static String help() {
+        return "Usage: java -jar javaxdelta.jar [-d|--delta path/to/deltaFileOverride] [-h|--help] [-v|--verbose] [path/to/patchedFileOverride]";
     }
 
     private static File tempFile() throws IOException {

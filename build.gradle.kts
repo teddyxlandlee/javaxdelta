@@ -77,8 +77,12 @@ val prepareDeployThings = tasks.register("prepareDeployThings") {
 tasks.register("deployJar", Zip::class) {
     destinationDirectory.set(buildDir.resolve("deploy").apply(File::mkdirs))
     //destinationDirectory.set(buildDir.resolve("libs"))
-    dependsOn("proguardJar")
-    from(zipTree(proguardOutput))
+    if (!project.ext.has("javaxdelta.useCache")) {
+        dependsOn("proguardJar")
+        from(zipTree(proguardOutput))
+    } else {
+        from(zipTree(project.ext["javaxdelta.useCache"].toString()))
+    }
     archiveClassifier.set("deploy")
     archiveExtension.set("jar")
 

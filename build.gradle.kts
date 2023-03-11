@@ -23,7 +23,7 @@ dependencies {
 }
 
 group = "xland.ioutils.com.nothome"
-version = "2.1.1"
+version = "2.10.0"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
@@ -44,9 +44,7 @@ tasks.jar {
 
 val proguardOutput : File = buildDir.resolve("libs/${project.name}-${project.version}-proguard.jar")
 
-println("javaxdelta.input: ${if (project.ext.has("javaxdelta.input")) project.ext["javaxdelta.input"] else null}")
-
-tasks.register("proguardJar", proguard.gradle.ProGuardTask::class) {
+val proguardJar by tasks.registering(proguard.gradle.ProGuardTask::class) {
     dependsOn("jar")
     injars(tasks.jar)
     outjars(proguardOutput)
@@ -58,43 +56,24 @@ tasks.register("proguardJar", proguard.gradle.ProGuardTask::class) {
         })
     )
 
-    //flattenpackagehierarchy("xdelta")
     repackageclasses("xdelta")
     keepclasseswithmembers("public class ${Constants.MAIN_CLASS} {\npublic static void main(java.lang.String[]);\n}")
+    keepattributes("LineNumberTable,SourceFile")
+    renamesourcefileattribute()
     configuration("rootconf.pro")
     printmapping(buildDir.resolve("proguard-${version}.mapping"))
 }
 
-val prepareDeployThings = tasks.register("prepareDeployThings") {
-    doLast {
-        if (project.ext.has("javaxdelta.input")) {
-            val inputFilename = project.ext["javaxdelta.input"].toString()
-            this.temporaryDir.resolve("input-file").writeText(inputFilename)
-        }
+tasks.register("deployJar", Jar::class) {
+    dependsOn(tasks.jar, proguardJar)
+    from(zipTree(tasks.jar.get().archiveFile))
+    from(proguardOutput) {
+        rename { "META-INF/wrapper.jar" }
     }
-}
-
-tasks.register("deployJar", Zip::class) {
-    destinationDirectory.set(buildDir.resolve("deploy").apply(File::mkdirs))
-    //destinationDirectory.set(buildDir.resolve("libs"))
-    if (!project.ext.has("javaxdelta.useCache")) {
-        dependsOn("proguardJar")
-        from(zipTree(proguardOutput))
-    } else {
-        from(zipTree(project.ext["javaxdelta.useCache"].toString()))
+    manifest {
+        attributes("Main-Class" to "xland.ioutils.xdelta.wrapper.DeltaGenerator")
     }
-    archiveClassifier.set("deploy")
-    archiveExtension.set("jar")
-
-    dependsOn(prepareDeployThings)
-    from(prepareDeployThings.get().temporaryDir.resolve("input-file")) {
-        into("META-INF")
-    }
-    if (project.ext.has("javaxdelta.delta")) {
-        from(project.ext["javaxdelta.delta"].toString()) {
-            rename { "META-INF/patch.bin" }
-        }
-    }
+    archiveClassifier.set("generator")
 }
 
 publishing {

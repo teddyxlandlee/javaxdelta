@@ -8,17 +8,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 public class JarPatcherMain {
-    private static String inputFile() throws IOException {
-        try (InputStream s = JarPatcherMain.class.getResourceAsStream("/META-INF/input-file")) {
-            if (s == null) throw new FileNotFoundException("/META-INF/input-file");
+    private static String readFromClasspath(String fn) throws IOException {
+        try (InputStream s = JarPatcherMain.class.getResourceAsStream(fn)) {
+            if (s == null) throw new FileNotFoundException(fn);
             BufferedReader br = new BufferedReader(new InputStreamReader(s));
             StringWriter sw = new StringWriter();
             transferTo(br, sw);
@@ -26,17 +23,27 @@ public class JarPatcherMain {
         }
     }
 
-    private static void log(boolean verbose, Supplier<?> o) { if (verbose) System.err.println(o.get()); }
+    private static String inputFile() throws IOException {
+        return readFromClasspath("/META-INF/input-file");
+    }
+
+    private static String outputFile() throws IOException {
+        return readFromClasspath("/META-INF/output-file");
+    }
+
+    static void log(boolean verbose, Supplier<?> o) { if (verbose) System.err.println(o.get()); }
 
     public static void main(String[] rawArgs) {
         Map<Character, String> aliasMap = new HashMap<>(); {
             aliasMap.put('v', "verbose");
             aliasMap.put('h', "help");
             aliasMap.put('d', "delta");
+            aliasMap.put('o', "output");
         }
 
         boolean verbose = false;
         String input = null;
+        String output = null;
         String delta = null;
 
         final Iterator<Arg> iterator = Arg.parse(rawArgs, aliasMap::get).iterator();
@@ -52,7 +59,10 @@ public class JarPatcherMain {
                         break;
                     case "help":
                         log(true, JarPatcherMain::help);
-                        System.exit(0);
+                        return;
+                    case "output":
+                        output = iterator.next().toString();
+                        break;
                 }
             } else {
                 if (input != null) {
@@ -63,11 +73,11 @@ public class JarPatcherMain {
         }
 
         try {
-            File file = tempFile();
-            log(verbose, () -> "Created temp file " + file);
-            Path output = Paths.get(input == null ? inputFile() : input);
-            log(verbose, () -> "Moving " + output + " to " + file);
-            Files.move(output, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            if (input == null) input = inputFile();
+            if (output == null) output = outputFile();
+            Path inputFile = Paths.get(input);
+            Path outputFile = Paths.get(output);
+            File file = fileOrTemp(inputFile, verbose);
 
             File patch;
             if (delta == null) {
@@ -82,27 +92,39 @@ public class JarPatcherMain {
                     }
                 }
             } else {
-                patch = new File(delta);
+                patch = fileOrTemp(Paths.get(delta), verbose);
             }
 
             log(verbose, () -> "Ready");
-            new JarPatcher().applyDelta(new ZipFile(file), new ZipFile(patch), new ZipOutputStream(Files.newOutputStream(output)));
+            new JarPatcher().applyDelta(new ZipFile(file), new ZipFile(patch), new ZipOutputStream(Files.newOutputStream(outputFile)));
+            log(verbose, () -> "Done");
         } catch (IOException e) {
             logAndExit(e);
         }
     }
 
     public static String help() {
-        return "Usage: java -jar javaxdelta.jar [-d|--delta path/to/deltaFileOverride] [-h|--help] [-v|--verbose] [path/to/patchedFileOverride]";
+        return "Usage: java -jar javaxdelta.jar [-d|--delta path/to/deltaFileOverride] [-h|--help] [-v|--verbose] [path/to/input] [-o|--output path/to/output]";
     }
 
-    private static File tempFile() throws IOException {
+    static File fileOrTemp(Path path, boolean verbose) throws IOException {
+        try {
+            return path.toFile();
+        } catch (UnsupportedOperationException e) {
+            final File file = tempFile();
+            log(verbose, () -> "Copying " + path + " into " + file);
+            Files.copy(path, file.toPath());
+            return file;
+        }
+    }
+
+    static File tempFile() throws IOException {
         final File tmp = File.createTempFile(UUID.randomUUID().toString(), "tmp");
         tmp.deleteOnExit();
         return tmp;
     }
 
-    private static void logAndExit(Throwable t) {
+    static void logAndExit(Throwable t) {
         t.printStackTrace();
         System.exit(-1);
     }
@@ -113,81 +135,6 @@ public class JarPatcherMain {
         int nRead;
         while ((nRead = reader.read(buffer, 0, 8192)) >= 0) {
             out.write(buffer, 0, nRead);
-        }
-    }
-
-    private static class Arg {
-        //UNIX = 1, RAW = 0, GNU = -1;
-        private final int type;
-        private final String ctx;
-
-        private Arg(int type, String ctx) {
-            this.type = type;
-            this.ctx = ctx;
-        }
-
-        static Arg unix(char c) { return new Arg(1, String.valueOf(c)); }
-        static Arg gnu(String s) { return new Arg(-1, s); }
-        static Arg raw(String s) { return new Arg(0, s); }
-
-        String getContext() { return ctx; }
-        int getType() { return Integer.signum(type); }
-        boolean isGnu() { return type < 0; }
-        boolean isUnix() { return type > 0; }
-        boolean isRaw() { return type == 0; }
-
-        public String toString() {
-            if (isGnu()) return "--" + ctx;
-            else if (isRaw()) return ctx;
-            return '-' + ctx;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof Arg)) return false;
-            final Arg other = (Arg) o;
-            return Objects.equals(this.ctx, other.ctx) &&
-                    this.getType() == other.getType();
-        }
-
-        @Override
-        public int hashCode() {
-            return (Objects.hashCode(this.ctx) << 2) | (getType() & 3);
-        }
-
-        static List<Arg> parse(String... args) {
-            List<Arg> list = new ArrayList<>();
-            for (String s : args) {
-                if ("--".equals(s) || s.length() < 2 || s.charAt(0) != '-')
-                    list.add(raw(s));
-                else if (s.charAt(1) == '-') {
-                    int idx;
-                    if ((idx = s.indexOf('=')) < 0)
-                        list.add(gnu(s.substring(2)));
-                    else {
-                        list.add(gnu(s.substring(2, idx)));
-                        list.add(raw(s.substring(idx + 1)));
-                    }
-                } else {
-                    final char[] chars = s.toCharArray();
-                    for (int i = 1; i < chars.length; i++)
-                        list.add(unix(chars[i]));
-                }
-            }
-            return list;
-        }
-
-        @SuppressWarnings("all")
-        static List<Arg> parse(String[] args, Function<Character, String> unixMapper) {
-            return parse(args).stream().flatMap(arg -> {
-                if (arg.isUnix()) {
-                    final String s = unixMapper.apply(arg.getContext().charAt(0));
-                    if (s == null) return Stream.empty();
-                    return Stream.of(gnu(s));
-                }
-                return Stream.of(arg);
-            }).collect(Collectors.toList());
         }
     }
 }

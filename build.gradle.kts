@@ -23,7 +23,7 @@ dependencies {
 }
 
 group = "xland.ioutils.com.nothome"
-version = "2.10.0"
+version = "2.10.2"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
@@ -34,6 +34,7 @@ java {
 
 object Constants {
     const val MAIN_CLASS = "xland.ioutils.xdelta.wrapper.JarPatcherMain"
+    const val GENERATOR_CLASS = "xland.ioutils.xdelta.wrapper.DeltaGenerator"
 }
 
 tasks.jar {
@@ -42,12 +43,31 @@ tasks.jar {
     }
 }
 
-val proguardOutput : File = buildDir.resolve("libs/${project.name}-${project.version}-proguard.jar")
+val proguardDir : File = buildDir.resolve("proguard")
+proguardDir.mkdir()
+val proguardOutput : File = proguardDir.resolve("${project.name}-${project.version}-proguard.jar")
+val proguardGeneratorOutput : File = proguardDir.resolve("${project.name}-${project.version}-proguard-generator.jar")
+
+val mappingFile = proguardDir.resolve("proguard-${version}.mapping")
+val generatorMappingFile = proguardDir.resolve("generator-${version}.mapping")
 
 val proguardJar by tasks.registering(proguard.gradle.ProGuardTask::class) {
-    dependsOn("jar")
-    injars(tasks.jar)
+    moreConf()
     outjars(proguardOutput)
+    keepclasseswithmembers("public class ${Constants.MAIN_CLASS} {\npublic static void main(java.lang.String[]);\n}")
+    printmapping(mappingFile)
+}
+
+val proguardGeneratorJar by tasks.registering(proguard.gradle.ProGuardTask::class) {
+    moreConf()
+    outjars(proguardGeneratorOutput)
+    keepclasseswithmembers("public class ${Constants.GENERATOR_CLASS} {\npublic static void main(java.lang.String[]);\n}")
+    printmapping(generatorMappingFile)
+}
+
+fun proguard.gradle.ProGuardTask.moreConf() {
+    dependsOn(tasks.jar)
+    injars(tasks.jar)
     libraryjars(
         File(System.getProperty("java.home"), if (JavaVersion.current().isJava9Compatible) {
             "jmods"
@@ -55,21 +75,33 @@ val proguardJar by tasks.registering(proguard.gradle.ProGuardTask::class) {
             "lib/rt.jar"
         })
     )
-
     repackageclasses("xdelta")
-    keepclasseswithmembers("public class ${Constants.MAIN_CLASS} {\npublic static void main(java.lang.String[]);\n}")
     keepattributes("LineNumberTable,SourceFile")
     renamesourcefileattribute()
     configuration("rootconf.pro")
-    printmapping(buildDir.resolve("proguard-${version}.mapping"))
+}
+
+val mappingZip by tasks.registering(Zip::class) {
+    dependsOn(proguardJar, proguardGeneratorJar)
+    from(mappingFile)
+    from(generatorMappingFile)
+    destinationDirectory.set(proguardDir)
+    archiveClassifier.set("mapping")
 }
 
 tasks.register("deployJar", Jar::class) {
-    dependsOn(tasks.jar, proguardJar)
-    from(zipTree(tasks.jar.get().archiveFile))
+    dependsOn(proguardGeneratorJar, proguardJar, mappingZip)
+
+    doFirst {
+    	from(zipTree(proguardGeneratorOutput))
+    }
     from(proguardOutput) {
         rename { "META-INF/wrapper.jar" }
     }
+    from(mappingZip) {
+        rename { "META-INF/mappings.zip" }
+    }
+
     manifest {
         attributes("Main-Class" to "xland.ioutils.xdelta.wrapper.DeltaGenerator")
     }

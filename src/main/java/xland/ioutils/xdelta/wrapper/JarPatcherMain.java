@@ -104,7 +104,7 @@ public class JarPatcherMain {
     }
 
     public static String help() {
-        return "Usage: java -jar javaxdelta.jar [-d|--delta path/to/deltaFileOverride] [-h|--help] [-v|--verbose] [path/to/input] [-o|--output path/to/output]";
+        return "Usage: java -jar XDeltaWrapper.jar [-d|--delta path/to/deltaFileOverride] [-h|--help] [-v|--verbose] [path/to/input] [-o|--output path/to/output]";
     }
 
     static File fileOrTemp(Path path, boolean verbose) throws IOException {

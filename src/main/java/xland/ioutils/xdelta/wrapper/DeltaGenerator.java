@@ -117,7 +117,7 @@ public class DeltaGenerator {
     }
 
     public static String help() {
-        return "Usage: java -cp javaxdelta.jar " + DeltaGenerator.class.getName() +
+        return "Usage: java -cp XDeltaWrapper.jar " + DeltaGenerator.class.getName() +
                 " [-J/--wrapper path/to/wrapper.jar] [-h/--help] [-v/--verbose] [-i/--input name.jar] [-o/--output name.jar] a.jar b.jar output.jar";
     }
 }

@@ -23,18 +23,24 @@ dependencies {
 }
 
 group = "xland.ioutils.com.nothome"
-version = "2.10.2"
+version = "3.0.0"
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
     withSourcesJar()
     //withJavadocJar()
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(11))
+    }
 }
 
 object Constants {
     const val MAIN_CLASS = "xland.ioutils.xdelta.wrapper.JarPatcherMain"
     const val GENERATOR_CLASS = "xland.ioutils.xdelta.wrapper.DeltaGenerator"
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.encoding = "UTF-8"
+    options.release.set(8)
 }
 
 tasks.jar {
@@ -77,7 +83,7 @@ fun proguard.gradle.ProGuardTask.moreConf() {
     )
     repackageclasses("xdelta")
     keepattributes("LineNumberTable,SourceFile")
-    renamesourcefileattribute()
+    renamesourcefileattribute("SourceFile")
     configuration("rootconf.pro")
 }
 
@@ -103,7 +109,11 @@ tasks.register("deployJar", Jar::class) {
     }
 
     manifest {
-        attributes("Main-Class" to "xland.ioutils.xdelta.wrapper.DeltaGenerator")
+        attributes(
+            "Main-Class" to "xland.ioutils.xdelta.wrapper.DeltaGenerator",
+            "Git-Repository" to "https://github.com/teddyxlandlee/javaxdelta",
+            "Implementation-License" to "MIT",
+        )
     }
     archiveClassifier.set("generator")
 }

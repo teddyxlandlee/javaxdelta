@@ -1,7 +1,5 @@
 package xland.ioutils.xdelta.wrapper;
 
-import at.spardat.xma.xdelta.JarPatcher;
-
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -10,9 +8,6 @@ import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
-import java.util.function.Supplier;
-import java.util.zip.ZipFile;
-import java.util.zip.ZipOutputStream;
 
 public class JarPatcherMain {
     private static String readFromClasspath(String fn) throws IOException {
@@ -33,7 +28,7 @@ public class JarPatcherMain {
         return readFromClasspath("/META-INF/output-file");
     }
 
-    static void log(boolean verbose, Supplier<?> o) { if (verbose) System.err.println(o.get()); }
+    static void log(boolean verbose, Object obj) { if (verbose) System.err.println(obj); }
 
     static byte[] sha256(Path path) throws IOException {
         MessageDigest md;
@@ -52,16 +47,18 @@ public class JarPatcherMain {
     }
 
     public static void main(String[] rawArgs) {
-        Map<Character, String> aliasMap = new HashMap<>(); {
+        Map<Character, String> aliasMap = new HashMap<>(8); {
             aliasMap.put('v', "verbose");
             aliasMap.put('h', "help");
             aliasMap.put('d', "delta");
             aliasMap.put('o', "output");
             aliasMap.put('S', "ignore-checksum");
+            aliasMap.put('R', "ignore-mismatch");
         }
 
         boolean verbose = false;
         boolean ignoreChecksum = false;
+        boolean ignoreMismatch = false;
         String input = null;
         String output = null;
         String delta = null;
@@ -78,13 +75,16 @@ public class JarPatcherMain {
                         delta = iterator.next().toString();
                         break;
                     case "help":
-                        log(true, JarPatcherMain::help);
+                        log(true, help());
                         return;
                     case "output":
                         output = iterator.next().toString();
                         break;
                     case "ignore-checksum":
                         ignoreChecksum = true;
+                        break;
+                    case "ignore-mismatch":
+                        ignoreMismatch = true;
                         break;
                 }
             } else {
@@ -132,12 +132,11 @@ public class JarPatcherMain {
             }
 
             Path outputFile = Paths.get(output);
-            File file = fileOrTemp(inputFile, verbose);
 
             File patch;
             if (delta == null) {
                 patch = tempFile();
-                log(verbose, () -> "Extracting patch to " + patch);
+                log(verbose, "Extracting patch to " + patch);
                 final InputStream patchBin = JarPatcherMain.class.getResourceAsStream("/META-INF/patch.bin");
                 if (patchBin == null) {
                     throw new FileNotFoundException("/META-INF/patch.bin");
@@ -150,9 +149,9 @@ public class JarPatcherMain {
                 patch = fileOrTemp(Paths.get(delta), verbose);
             }
 
-            log(verbose, () -> "Ready");
-            new JarPatcher().applyDelta(new ZipFile(file), new ZipFile(patch), new ZipOutputStream(Files.newOutputStream(outputFile)));
-            log(verbose, () -> "Done");
+            log(verbose, "Ready");
+            JarPatcherV2.applyDeltaCompatible(inputFile, patch, outputFile, ignoreMismatch);
+            log(verbose, "Done");
         } catch (IOException e) {
             logAndExit(e);
         }
@@ -181,10 +180,14 @@ public class JarPatcherMain {
             return path.toFile();
         } catch (UnsupportedOperationException e) {
             final File file = tempFile();
-            log(verbose, () -> "Copying " + path + " into " + file);
+            log(verbose, "Copying " + path + " into " + file);
             Files.copy(path, file.toPath());
             return file;
         }
+    }
+
+    public static File fileOrTemp(Path path) throws IOException {
+        return fileOrTemp(path, false);
     }
 
     static File tempFile() throws IOException {
@@ -194,15 +197,32 @@ public class JarPatcherMain {
     }
 
     static void logAndExit(Throwable t) {
-        t.printStackTrace();
+        sneakyThrow(t);
         System.exit(-1);
     }
 
+    @SuppressWarnings("unchecked")
+    private static <E extends Throwable> void sneakyThrow(Throwable t) throws E {
+        throw (E) t;
+    }
+
+    private static final int BUFFER_SIZE = 8192;
+
     public static void transferTo(Reader reader, Writer out) throws IOException {
         Objects.requireNonNull(out, "out");
-        char[] buffer = new char[8192];
+        char[] buffer = new char[BUFFER_SIZE];
         int nRead;
-        while ((nRead = reader.read(buffer, 0, 8192)) >= 0) {
+        while ((nRead = reader.read(buffer, 0, BUFFER_SIZE)) >= 0) {
+            out.write(buffer, 0, nRead);
+        }
+    }
+
+    public static void transferTo(InputStream in, OutputStream out) throws IOException {
+        Objects.requireNonNull(in, "in");
+        Objects.requireNonNull(out, "out");
+        byte[] buffer = new byte[BUFFER_SIZE];
+        int nRead;
+        while ((nRead = in.read(buffer, 0, BUFFER_SIZE)) >= 0) {
             out.write(buffer, 0, nRead);
         }
     }

@@ -34,6 +34,8 @@
 
 package com.nothome.delta;
 
+ import xland.ioutils.xdelta.wrapper.SyncPoolOutputStream;
+
  import java.io.*;
  import java.nio.ByteBuffer;
  import java.nio.channels.Channels;
@@ -98,6 +100,7 @@ public class Delta {
     /**
      * Compares the source bytes with target bytes, writing to output.
      */
+    @Deprecated // deprecation - unexpected output.close()
     public void compute(byte[] source, byte[] target, OutputStream output)
     throws IOException {
         compute(new ByteBufferSeekableSource(source), 
@@ -108,6 +111,7 @@ public class Delta {
     /**
      * Compares the source bytes with target bytes, returning output.
      */
+    @Deprecated // deprecation - unexpected output.close()
     public byte[] compute(byte[] source, byte[] target)
     throws IOException {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -118,6 +122,7 @@ public class Delta {
     /**
      * Compares the source bytes with target input, writing to output.
      */
+    @Deprecated // deprecation - unexpected output.close()
     public void compute(byte[] sourceBytes, InputStream inputStream,
             DiffWriter diffWriter) throws IOException
     {
@@ -130,6 +135,7 @@ public class Delta {
      * 
      * @param output will be closed
      */
+    @Deprecated // deprecation - unexpected output.close()
     public void compute(File sourceFile, File targetFile, DiffWriter output)
     throws IOException {
         try (RandomAccessFileSeekableSource source = new RandomAccessFileSeekableSource(new RandomAccessFile(sourceFile, "r")); InputStream is = new BufferedInputStream(Files.newInputStream(targetFile.toPath()))) {
@@ -142,9 +148,14 @@ public class Delta {
      * 
      * @param output will be closed
      */
+    @Deprecated // deprecation - unexpected output.close()
     public void compute(SeekableSource seekSource, InputStream targetIS, DiffWriter output)
     throws IOException {
-        
+        doCompute(seekSource, targetIS, output);
+        output.close();
+    }
+
+    public void doCompute(SeekableSource seekSource, InputStream targetIS, DiffWriter output) throws IOException {
         if (debug) {
             debug("using match length S = " + S);
         }
@@ -154,7 +165,7 @@ public class Delta {
         this.output = output;
         if (debug)
             debug("checksums " + source.checksum);
-        
+
         while (!target.eof()) {
             debug("!target.eof()");
             int index = target.find(source);
@@ -177,7 +188,11 @@ public class Delta {
                 addData();
             }
         }
-        output.close();
+        output.end();   // XDeltaWrapper - don't close the stream
+    }
+
+    public void doCompute(SyncPoolOutputStream sourceBuf, SyncPoolOutputStream targetBuf, DiffWriter output) throws IOException {
+        doCompute(sourceBuf.makeSeekableSource(), targetBuf.makeInputStream(), output);
     }
     
     private void addData() throws IOException {
@@ -374,6 +389,7 @@ public class Delta {
     /**
      * Creates a patch using file names.
      */
+    @Deprecated
     public static void main(String[] argv) throws Exception {
         if (argv.length != 3) {
             System.err.println("usage Delta [-d] source target [output]");

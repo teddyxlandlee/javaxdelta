@@ -1,6 +1,26 @@
+/*
+ * Copyright (c) 2023, 2026 Teddy Li
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ */
 package xland.ioutils.xdelta.wrapper;
-
-import at.spardat.xma.xdelta.JarDelta;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,11 +40,11 @@ public class DeltaGenerator {
     // DeltaGenerator [-J/--wrapper path/to/wrapper.jar] [-h/--help] [-v/--verbose] [-S/--no-checksum] [-i/--input name.jar] [-o/--output name.jar] a.jar b.jar output.jar
     public static void main(String[] args) {
         if (args.length == 0) {
-            JarPatcherMain.log(true, DeltaGenerator::help);
+            JarPatcherMain.log(true, help());
             return;
         }
 
-        Map<Character, String> aliasMap = new HashMap<>(); {
+        Map<Character, String> aliasMap = new HashMap<>(8); {
             aliasMap.put('v', "verbose");
             aliasMap.put('h', "help");
             aliasMap.put('J', "wrapper");
@@ -46,7 +66,7 @@ public class DeltaGenerator {
             } else {
                 switch (arg.getContext()) {
                     case "help":
-                        JarPatcherMain.log(true, DeltaGenerator::help);
+                        JarPatcherMain.log(true, help());
                         return;
                     case "verbose":
                         verbose = true;
@@ -67,16 +87,16 @@ public class DeltaGenerator {
             }
         }
         if (files.size() != 3) {
-            JarPatcherMain.log(true, DeltaGenerator::help);
+            JarPatcherMain.log(true, help());
             return;
         }
         if (inputName == null)
-            JarPatcherMain.log(true, () -> "An input name is recommended");
+            JarPatcherMain.log(true, "An input name is recommended");
         if (outputName == null)
-            JarPatcherMain.log(true, () -> "An output name is recommended");
+            JarPatcherMain.log(true, "An output name is recommended");
 
         byte[] sha256 = null;
-        JarPatcherMain.log(verbose, () -> "Ready");
+        JarPatcherMain.log(verbose, "Ready");
         try {
             final Path sourceFile = files.get(0);
             if (checksum) {
@@ -87,17 +107,19 @@ public class DeltaGenerator {
             try (ZipOutputStream os = new ZipOutputStream(Files.newOutputStream(files.get(2)))) {
                 ZipEntry z;
 
-                JarPatcherMain.log(verbose, () -> "Generating patch");
+                JarPatcherMain.log(verbose, "Generating patch");
                 z = new ZipEntry("META-INF/patch.bin");
                 os.putNextEntry(z);
-                try (ZipFile z1 = new ZipFile(f1); ZipFile z2 = new ZipFile(f2)) {
-                    new JarDelta().computeDelta(z1, z2, new ZipOutputStream(wrappedOutputStream(os)));
+                try (ZipFile z1 = new ZipFile(f1);
+                     ZipFile z2 = new ZipFile(f2);
+                     ZipOutputStream zos = new ZipOutputStream(wrappedOutputStream(os))) {
+                    JarDeltaV2.computeDelta(z1, z2, zos);
                 }
 
-                JarPatcherMain.log(verbose, () -> "Try writing source file SHA-256");
+                JarPatcherMain.log(verbose, "Try writing source file SHA-256");
                 tryWrite(os, "META-INF/checksum.bin", sha256);
 
-                JarPatcherMain.log(verbose, () -> "Copying entries");
+                JarPatcherMain.log(verbose, "Copying entries");
                 tryWrite(os, "META-INF/input-file", inputName);
                 tryWrite(os, "META-INF/output-file", outputName);
 
@@ -115,7 +137,7 @@ public class DeltaGenerator {
                     }
                 }
             }
-            JarPatcherMain.log(verbose, () -> "Done");
+            JarPatcherMain.log(verbose, "Done");
         } catch (IOException e) {
             JarPatcherMain.logAndExit(e);
         }
@@ -153,13 +175,11 @@ public class DeltaGenerator {
             }
 
             @Override
-            @SuppressWarnings("all")
             public void write(/*@NotNull*/ byte[] b) throws IOException {
                 os.write(b);
             }
 
             @Override
-            @SuppressWarnings("all")
             public void write(byte[] b, int off, int len) throws IOException {
                 os.write(b, off, len);
             }

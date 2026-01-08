@@ -45,6 +45,7 @@ import java.util.zip.ZipOutputStream;
  *
  * @author gruber
  */
+@Deprecated	// XDeltaWrapper - this is legacy format
 public class JarDelta {
 
     /**
@@ -116,10 +117,14 @@ public class JarDelta {
             ZipEntry listEntry = new ZipEntry("META-INF/file.list");
             output.putNextEntry(listEntry);
             output.write(listBytes.toByteArray());
+			output.closeEntry();	// XDeltaWrapper - do not close
         } finally {
-            source.close();
-            target.close();
-            output.close();
+			// XDeltaWrapper start - do not close
+			if (false) {
+			source.close();
+			target.close();
+			output.close();
+			}// XDeltaWrapper end - do not close
         }
 	}
 
@@ -133,6 +138,11 @@ public class JarDelta {
 			System.err.println("usage JarDelta source target output");
 			return;
 		}
-		new JarDelta().computeDelta(new ZipFile(args[0]),new ZipFile(args[1]),new ZipOutputStream(Files.newOutputStream(Paths.get(args[2]))));
+		// XDeltaWrapper start - do not close
+		try (ZipFile source = new ZipFile(args[0]);
+			 ZipFile target = new ZipFile(args[1]);
+			 ZipOutputStream output = new ZipOutputStream(Files.newOutputStream(Paths.get(args[2])))) {
+			new JarDelta().computeDelta(source, target, output);
+		}
 	}
 }

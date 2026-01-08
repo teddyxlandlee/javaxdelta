@@ -41,6 +41,7 @@ import java.util.zip.ZipOutputStream;
  *
  * @author s2877
  */
+@Deprecated // XDeltaWrapper - this is legacy format
 public class JarPatcher {
     /**
      * Applies the differences in patch to source to create the target file. All binary difference files
@@ -117,9 +118,13 @@ public class JarPatcher {
         } catch (PatchException pe) {
             throw new IOException(pe);
         } finally {
+            // XDeltaWrapper start - do not close
+            if (false) {
             source.close();
             patch.close();
             output.close();
+            }
+            // XDeltaWrapper end - do not close
         }
     }
 
@@ -133,6 +138,11 @@ public class JarPatcher {
             System.err.println("usage JarPatcher source patch output");
             return;
         }
-        new JarPatcher().applyDelta(new ZipFile(args[0]),new ZipFile(args[1]),new ZipOutputStream(Files.newOutputStream(Paths.get(args[2]))));
+        // XDeltaWrapper start - do not close
+        try (ZipFile source = new ZipFile(args[0]);
+             ZipFile patch = new ZipFile(args[1]);
+             ZipOutputStream output = new ZipOutputStream(Files.newOutputStream(Paths.get(args[2])))) {
+            new JarPatcher().applyDelta(source, patch, output);
+        }// XDeltaWrapper end - do not close
     }
 }

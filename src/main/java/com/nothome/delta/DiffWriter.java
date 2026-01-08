@@ -30,7 +30,7 @@ import java.io.IOException;
 /**
  * Interface for DIFF writers.
  */
-public interface DiffWriter extends Closeable {
+public interface DiffWriter extends Closeable, java.io.Flushable {
     
     /**
      * Add a GDIFF copy instruction.
@@ -52,5 +52,11 @@ public interface DiffWriter extends Closeable {
      * Closes this stream.
      */
     void close() throws IOException;
+
+    /**
+     * Writes the final EOF byte, but don't close the stream.
+     * @author Teddy Li
+     */
+    default void end() throws IOException {}
 }
 

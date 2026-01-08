@@ -154,13 +154,24 @@ public class GDiffWriter implements DiffWriter {
 		writeBuf(); 
     	output.flush(); 
     }
+
+    private boolean ended;
+
+    /**
+     * Writes the final EOF byte.
+     */
+    public void end() throws IOException {
+        if (ended) return;
+        this.flush();
+        output.write(EOF);
+        ended = true;
+    }
     
     /**
      * Writes the final EOF byte, closes the underlying stream.
      */
     public void close() throws IOException {
-        this.flush();
-        output.write(EOF);
+        end();
         output.close();
     }
 

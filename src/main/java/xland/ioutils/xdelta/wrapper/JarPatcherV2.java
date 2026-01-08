@@ -57,7 +57,18 @@ public class JarPatcherV2 {
 
         // Firstly add all additions
         for (Map.Entry<String, String> e : patchInfo.getAdds().entrySet()) {
-            output.putNextEntry(new ZipEntry(e.getValue()));
+            ZipEntry targetEntry = new ZipEntry(e.getKey());
+            ZipEntry sourceEntry = patch.getEntry(e.getValue());
+            if (sourceEntry == null) {
+                throw new FileNotFoundException(e.getKey() + " (for addition)");
+            }
+
+            targetEntry.setTime(sourceEntry.getTime());
+            output.putNextEntry(targetEntry);
+
+            try (InputStream in = patch.getInputStream(sourceEntry)) {
+                JarPatcherMain.transferTo(in, output);
+            }
         }
 
         ZipEntry sourceEntry;
@@ -73,6 +84,13 @@ public class JarPatcherV2 {
             }
 
             if (toRemove.remove(sourceEntryName)) continue; // removal
+
+            if (sourceEntry.isDirectory()) {
+                // Directories cannot be patched/replaced; they are equivalent to as-is copy
+                output.putNextEntry(new ZipEntry(sourceEntry));
+                continue;
+            }
+
             String place;
 
             ZipEntry outputEntry = new ZipEntry(sourceEntryName);
@@ -80,6 +98,10 @@ public class JarPatcherV2 {
             place = toReplace.remove(sourceEntryName);
             if (place != null) {
                 ZipEntry replaceEntry = patch.getEntry(place);
+                if (replaceEntry == null) {
+                    throw new FileNotFoundException(sourceEntryName + " (for replacement)");
+                }
+
                 outputEntry.setTime(replaceEntry.getTime());
                 output.putNextEntry(outputEntry);
                 try (InputStream in = patch.getInputStream(replaceEntry)) {
@@ -91,6 +113,10 @@ public class JarPatcherV2 {
             place = toPatch.remove(sourceEntryName);
             if (place != null) {
                 ZipEntry patchEntry = patch.getEntry(place);
+                if (patchEntry == null) {
+                    throw new FileNotFoundException(sourceEntryName + " (for patch)");
+                }
+
                 outputEntry.setTime(patchEntry.getTime());
                 output.putNextEntry(outputEntry);
 
@@ -104,7 +130,13 @@ public class JarPatcherV2 {
                         diffPatcher.patch(sourceBuf.makeSeekableSource(), patchStream, output);
                     }
                 }
+                continue;
             }
+
+            // Copy original entry
+            outputEntry = new ZipEntry(sourceEntry);
+            output.putNextEntry(outputEntry);
+            JarPatcherMain.transferTo(source, output);
         }
 
         if (toRemove.isEmpty() && toReplace.isEmpty() && toPatch.isEmpty()) return;

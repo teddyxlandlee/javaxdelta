@@ -61,14 +61,22 @@ public class JarDeltaV2 {
 			}
 		}
 
+		ZipEntry nilEntry = null;
+
 		for (Enumeration<? extends ZipEntry> enumer = target.entries(); enumer.hasMoreElements();) {
 			ZipEntry targetEntry = enumer.nextElement();
 			ZipEntry sourceEntry = source.getEntry(targetEntry.getName());
 
 			if (targetEntry.isDirectory()) {
-				if (sourceEntry==null) {
-					ZipEntry outputEntry = new ZipEntry(targetEntry);
-					output.putNextEntry(outputEntry);
+				if (sourceEntry == null) {
+					if (nilEntry == null) {
+						nilEntry = new ZipEntry(rawNamePool.nextName());
+						nilEntry.setMethod(ZipEntry.STORED);
+						nilEntry.setSize(0L);
+						output.putNextEntry(nilEntry);
+						output.closeEntry();
+					}
+					patchInfo.addition(targetEntry.getName(), nilEntry.getName());
 				}
 				continue;
 			}

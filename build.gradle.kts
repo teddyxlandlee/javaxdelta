@@ -23,7 +23,7 @@ dependencies {
 }
 
 group = "xland.ioutils.com.nothome"
-version = "3.0.0"
+version = "3.0.2"
 
 java {
     withSourcesJar()

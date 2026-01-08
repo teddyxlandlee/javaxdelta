@@ -22,10 +22,7 @@
  */
 package xland.ioutils.xdelta.wrapper;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -57,7 +54,7 @@ public class DeltaGenerator {
         boolean checksum = true;
         String wrapper = null;
         String inputName = null, outputName = null;
-        List<Path> files = new ArrayList<>(3);
+        ArrayList<Path> files = new ArrayList<>(3);
         final Iterator<Arg> iterator = Arg.parse(args, aliasMap::get).iterator();
         while (iterator.hasNext()) {
             Arg arg = iterator.next();
@@ -114,6 +111,8 @@ public class DeltaGenerator {
                      ZipFile z2 = new ZipFile(f2);
                      ZipOutputStream zos = new ZipOutputStream(wrappedOutputStream(os))) {
                     JarDeltaV2.computeDelta(z1, z2, zos);
+                } finally {
+                    os.closeEntry();
                 }
 
                 JarPatcherMain.log(verbose, "Try writing source file SHA-256");
@@ -167,29 +166,12 @@ public class DeltaGenerator {
                 " [-J/--wrapper path/to/wrapper.jar] [-h/--help] [-v/--verbose] [-S/--no-checksum] [-i/--input name.jar] [-o/--output name.jar] a.jar b.jar output.jar";
     }
 
-    private static OutputStream wrappedOutputStream(OutputStream os) {
-        return new OutputStream() {
+    private static FilterOutputStream wrappedOutputStream(OutputStream os) {
+        return new FilterOutputStream(os) {
             @Override
-            public void write(int b) throws IOException {
-                os.write(b);
+            public void close() throws IOException {
+                super.flush();
             }
-
-            @Override
-            public void write(/*@NotNull*/ byte[] b) throws IOException {
-                os.write(b);
-            }
-
-            @Override
-            public void write(byte[] b, int off, int len) throws IOException {
-                os.write(b, off, len);
-            }
-
-            @Override
-            public void flush() throws IOException {
-                os.flush();
-            }
-
-            // No close
         };
     }
 }

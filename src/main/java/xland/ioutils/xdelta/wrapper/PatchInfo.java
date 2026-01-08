@@ -56,7 +56,9 @@ public class PatchInfo {
     }
 
     public void dumpTo(OutputStream out) throws IOException {
-        dumpTo(new OutputStreamWriter(out, StandardCharsets.UTF_8));
+        OutputStreamWriter writer = new OutputStreamWriter(out, StandardCharsets.UTF_8);
+        dumpTo(writer);
+        writer.flush();
     }
 
     private static void writeToken1(String token, Appendable out) throws IOException {

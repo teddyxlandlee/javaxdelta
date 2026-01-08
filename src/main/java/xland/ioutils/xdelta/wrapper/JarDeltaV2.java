@@ -28,10 +28,6 @@ import com.nothome.delta.DiffWriter;
 import com.nothome.delta.GDiffWriter;
 
 import java.io.*;
-import java.nio.ByteBuffer;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -128,21 +124,4 @@ public class JarDeltaV2 {
 	}
 
 	static final int BUF_INITIAL_CAPACITY = 1048576;
-
-    /**
-     * Main method to make {@link #computeDelta(ZipFile, ZipFile, ZipOutputStream)} available at
-     * the command line.<br>
-     * usage JarDelta source target output
-     */
-	public static void main(String[] args) throws IOException {
-		if (args.length != 3) {
-			System.err.println("usage JarDelta source target output");
-			return;
-		}
-		try (ZipFile source = new ZipFile(args[0]);
-			 ZipFile target = new ZipFile(args[1]);
-			 ZipOutputStream output = new ZipOutputStream(Files.newOutputStream(Paths.get(args[2])))) {
-			JarDeltaV2.computeDelta(source, target, output);
-		}
-	}
 }

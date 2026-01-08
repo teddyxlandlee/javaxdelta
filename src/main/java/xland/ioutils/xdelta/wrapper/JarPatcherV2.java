@@ -99,6 +99,8 @@ public class JarPatcherV2 {
                     GDiffPatcher diffPatcher = new GDiffPatcher();
 
                     try (SyncPoolOutputStream sourceBuf = new SyncPoolOutputStream(JarDeltaV2.BUF_INITIAL_CAPACITY)) {
+                        // Transfer source to buffer
+                        JarPatcherMain.transferTo(source, sourceBuf);
                         diffPatcher.patch(sourceBuf.makeSeekableSource(), patchStream, output);
                     }
                 }

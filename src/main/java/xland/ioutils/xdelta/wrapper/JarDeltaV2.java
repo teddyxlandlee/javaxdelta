@@ -73,6 +73,8 @@ public class JarDeltaV2 {
 						nilEntry = new ZipEntry(rawNamePool.nextName());
 						nilEntry.setMethod(ZipEntry.STORED);
 						nilEntry.setSize(0L);
+						nilEntry.setCrc(0L);
+						nilEntry.setCompressedSize(0L);
 						output.putNextEntry(nilEntry);
 						output.closeEntry();
 					}

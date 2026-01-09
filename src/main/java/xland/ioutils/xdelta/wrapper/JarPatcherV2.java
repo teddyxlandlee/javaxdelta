@@ -55,22 +55,6 @@ public class JarPatcherV2 {
         HashMap<String, String> toReplace = new LinkedHashMap<>(patchInfo.getReplaces());
         HashMap<String, String> toPatch = new LinkedHashMap<>(patchInfo.getPatches());
 
-        // Firstly add all additions
-        for (Map.Entry<String, String> e : patchInfo.getAdds().entrySet()) {
-            ZipEntry targetEntry = new ZipEntry(e.getKey());
-            ZipEntry sourceEntry = patch.getEntry(e.getValue());
-            if (sourceEntry == null) {
-                throw new FileNotFoundException(e.getKey() + " (for addition)");
-            }
-
-            targetEntry.setTime(sourceEntry.getTime());
-            output.putNextEntry(targetEntry);
-
-            try (InputStream in = patch.getInputStream(sourceEntry)) {
-                JarPatcherMain.transferTo(in, output);
-            }
-        }
-
         ZipEntry sourceEntry;
         while ((sourceEntry = source.getNextEntry()) != null) {
             String sourceEntryName = sourceEntry.getName();
@@ -137,6 +121,22 @@ public class JarPatcherV2 {
             outputEntry = new ZipEntry(sourceEntry);
             output.putNextEntry(outputEntry);
             JarPatcherMain.transferTo(source, output);
+        }
+
+        // Lastly add all additions
+        for (Map.Entry<String, String> e : patchInfo.getAdds().entrySet()) {
+            ZipEntry targetEntry = new ZipEntry(e.getKey());
+            sourceEntry = patch.getEntry(e.getValue());
+            if (sourceEntry == null) {
+                throw new FileNotFoundException(e.getKey() + " (for addition)");
+            }
+
+            targetEntry.setTime(sourceEntry.getTime());
+            output.putNextEntry(targetEntry);
+
+            try (InputStream in = patch.getInputStream(sourceEntry)) {
+                JarPatcherMain.transferTo(in, output);
+            }
         }
 
         if (toRemove.isEmpty() && toReplace.isEmpty() && toPatch.isEmpty()) return;
